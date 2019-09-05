@@ -19,10 +19,10 @@ from loss.LSEP_Loss import *
 from loss.TopK_Loss import *
 from loss.Focal_Loss import *
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 # 1. dataset
-helper = None # NUS_WIDE_Helper(LABEL_TXT_PATH)
+helper = NUS_WIDE_Helper(LABEL_TXT_PATH)
 
 train_threads =[]
 for i in range(5):
@@ -48,7 +48,6 @@ vars = tf.trainable_variables()
 
 lsep_vars = []
 decision_vars = []
-
 for var in vars:
     if 'Label_Decision' in var.name:
         decision_vars.append(var)
@@ -58,9 +57,10 @@ for var in vars:
 lsep_loss_op = Log_Sum_Exp_Pairwise_Loss(predict_dic['LSEP'], label_conf_var, BATCH_SIZE)
 topk_loss_op = TopK_Loss(predict_dic['TopK'], label_topk_var, BATCH_SIZE)
 conf_loss_op = Focal_Loss(predict_dic['Confidence'], label_conf_var)
-l2_reg_loss_op = tf.add_n([tf.nn.l2_loss(var) for var in decision_vars]) * WEIGHT_DECAY
+l2_reg_loss_op = tf.add_n([tf.nn.l2_loss(var) for var in vars]) * WEIGHT_DECAY
 
 loss_op = lsep_loss_op + topk_loss_op + conf_loss_op + l2_reg_loss_op
+# loss_op = topk_loss_op + conf_loss_op + l2_reg_loss_op
 
 tf.summary.scalar('Loss', loss_op)
 tf.summary.scalar('LSEP_Loss', lsep_loss_op)
@@ -73,7 +73,7 @@ print('[i] set LSEP/TopK/Confidense loss op !')
 learning_rate_var = tf.placeholder(tf.float32)
 with tf.control_dependencies(tf.get_collection(tf.GraphKeys.UPDATE_OPS)):
     print('[i] ready Optimizer', end = '')
-    train_op = tf.train.MomentumOptimizer(learning_rate_var, 0.9).minimize(loss_op, var_list = decision_vars)
+    train_op = tf.train.MomentumOptimizer(learning_rate_var, 0.9).minimize(loss_op)
     print('\r[i] set Optimizer')
 
 # 3. train
@@ -87,12 +87,12 @@ print('\r[i] set global_variables_initializer !')
 
 # '''
 pretrained_saver = tf.train.Saver(var_list = lsep_vars)
-pretrained_saver.restore(sess, './model/VGG16_50000.ckpt')
-log_print('[i] restored LSEP Loss (VGG16)')
+pretrained_saver.restore(sess, './model/Inception_ResNet_v2_40000.ckpt')
+log_print('[i] restored LSEP Loss (Inception_ResNet_v2)')
 # '''
 
 saver = tf.train.Saver()
-# saver.restore(sess, './model/VGG16_Decision_50000.ckpt')
+# saver.restore(sess, './model/Inception_ResNet_v2_Decision_30000.ckpt')
 
 print('[i] ready thread')
 for index, train_thread in enumerate(train_threads):
@@ -208,11 +208,11 @@ for iter in range(1, max_iteration):
 
             log_print('[i] valid precision : {:.2f}'.format(valid_precision))
             log_print('[i] valid recall : {:.2f}'.format(valid_recall))
-            saver.save(sess, './model/VGG16_Decision_{}.ckpt'.format(iter))
+            saver.save(sess, './model/Inception_ResNet_v2_Decision_{}.ckpt'.format(iter))
 
         log_print('[i] valid mAP : {:.2f}, best valid mAP : {:.2f}%'.format(valid_mAP, best_valid_mAP))
 
-saver.save(sess, './model/VGG16_Decision.ckpt')
+saver.save(sess, './model/Inception_ResNet_v2_Decision.ckpt')
 
 for train_thread in train_threads:
     train_thread.end = False

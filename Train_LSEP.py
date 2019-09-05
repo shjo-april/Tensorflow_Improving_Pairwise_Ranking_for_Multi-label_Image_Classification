@@ -19,7 +19,7 @@ from loss.LSEP_Loss import *
 from loss.TopK_Loss import *
 from loss.Focal_Loss import *
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 # 1. dataset
 helper = NUS_WIDE_Helper(LABEL_TXT_PATH)
@@ -71,19 +71,19 @@ print('[i] ready Session !', end = '')
 sess.run(tf.global_variables_initializer())
 print('\r[i] set global_variables_initializer !')
 
-# '''
+'''
 pretrained_vars = []
 for var in tf.trainable_variables():
-    if 'vgg' in var.name:
+    if 'Inception' in var.name:
         pretrained_vars.append(var)
 
 pretrained_saver = tf.train.Saver(var_list = pretrained_vars)
-pretrained_saver.restore(sess, './vgg_16_model/vgg_16.ckpt')
-log_print('[i] restored imagenet model (VGG16)')
-# '''
+pretrained_saver.restore(sess, './inception_resnet_v2_model/inception_resnet_v2_2016_08_30.ckpt')
+log_print('[i] restored imagenet model (inception resnet v2)')
+'''
 
 saver = tf.train.Saver()
-# saver.restore(sess, './model/MobileNetv2_20000.ckpt')
+saver.restore(sess, './model/Inception_ResNet_v2_30000.ckpt')
 
 print('[i] ready thread')
 for index, train_thread in enumerate(train_threads):
@@ -168,11 +168,11 @@ for iter in range(1, max_iteration):
         valid_lsep_loss /= valid_iteration
         if best_valid_lsep_loss > valid_lsep_loss:
             best_valid_lsep_loss = valid_lsep_loss
-            saver.save(sess, './model/VGG16_{}.ckpt'.format(iter))
+            saver.save(sess, './model/Inception_ResNet_v2_{}.ckpt'.format(iter))
 
         log_print('[i] valid lsep loss : {:.4f}, best valid lsep loss : {:.4f}'.format(valid_lsep_loss, best_valid_lsep_loss))
 
-saver.save(sess, './model/VGG16.ckpt')
+saver.save(sess, './model/Inception_ResNet_v2.ckpt')
 
 for train_thread in train_threads:
     train_thread.end = False
